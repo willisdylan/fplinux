@@ -1,0 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0-only
+#include "ums9117-bluetooth.dtsi"
+
+&bluetooth {
+	firmware-name = "ums9117/f286-cm4.bin",
+			"ums9117/f286-bt-config.bin",
+			"ums9117/f286-bt-sprd.bin",
+			"ums9117/f286-bt-rf-config.bin";
+};

@@ -1,0 +1,105 @@
+# SPDX-License-Identifier: GPL-2.0-only
+platform = "ums9117"
+
+[identity]
+brand = "Ruio"
+product = "F286"
+hardware_codes = []
+compatible = "ruio,f286"
+
+[nand]
+raw_device = "/dev/ums9117-nand-raw"
+id = 0x15b0
+raw_page_bytes = 2112
+
+[display]
+panel = "display/panel.toml"
+boot_font = "7x14"
+
+[rootfs]
+packages = ["fplinux-audio", "fplinux-font-terminus-8x16"]
+
+[bundle]
+packages = []
+
+[linux]
+config_fragment = "linux/config/config.fragment"
+memory = { base = 0x80760000, size = 0x024c0000 }
+dtb = "unisoc/ums9117-ruio-f286.dtb"
+debug_dtb = "ums9117-ruio-f286.dtb"
+patches = []
+additional_forbidden_dtb_markers = []
+additional_forbidden_config = []
+overlay = "linux/overlay"
+copies = []
+
+[[linux.appends]]
+source = "linux/fragments/dts/unisoc.Makefile"
+destination = "arch/arm/boot/dts/unisoc/Makefile"
+
+[[linux.appends]]
+source = "linux/fragments/arch/arm/mach-ums9117/Kconfig"
+destination = "arch/arm/mach-ums9117/Kconfig"
+
+[[linux.appends]]
+source = "linux/fragments/drivers/gpu/drm/ums9117/drm.Kconfig"
+destination = "drivers/gpu/drm/Kconfig"
+
+[[linux.appends]]
+source = "linux/fragments/drivers/gpu/drm/ums9117/drm.Makefile"
+destination = "drivers/gpu/drm/ums9117/Makefile"
+
+[bootstrap]
+lcd_config = "bootstrap/lcd_config.h"
+image = "ruio_f286_linux_bootstrap.bin"
+map = "obj/ruio_f286_linux_bootstrap_map.txt"
+dtb_destination = "ruio_f286.dtb"
+record_prefix = "RUIO_F286"
+
+# The F286 has 48 MB of DRAM, so the kernel, FDT and framebuffer sit 16 MB
+# lower than the platform default.
+[bootstrap.layout]
+ram_base = 0x80000000
+ram_size = 0x03000000
+kernel_load = 0x81000000
+kernel_entry = 0x81000000
+kernel_size = 0x01200000
+fdt_load = 0x82e00000
+fdt_size = 0x00010000
+framebuffer = 0x82f00000
+framebuffer_size = 0x00100000
+timer_hz = 1000
+
+[adapter]
+spi_mode = 1
+backlight_channels = "rgbw"
+backlight_level = 0x16
+exec_distance = 0x314d
+session_name = "ruio-f286-linux"
+# The F286 BootROM key is the left soft key.
+boot_instructions = "Power the phone off, hold the left soft key, then connect USB while keeping it pressed."
+
+[device_data]
+parser = "ruio_f286_device_data.py"
+
+[bluetooth]
+firmware = [
+  { source = "f286-cm4.bin", destination = "ums9117/f286-cm4.bin" },
+  { source = "f286-bt-config.bin", destination = "ums9117/f286-bt-config.bin", size = 8 },
+  { source = "f286-bt-sprd.bin", destination = "ums9117/f286-bt-sprd.bin", size = 176 },
+  { source = "f286-bt-rf-config.bin", destination = "ums9117/f286-bt-rf-config.bin", size = 252 },
+]
+
+# GSM (fw_modem, id 0x10000006) and LTE (fw_dsp, id 0x10000005) DSP
+# firmware from the NAND backup, plus the four LTE XDSP core images that
+# exist only inside the stock kernel partition. The f286-radio driver copies
+# the GSM/LTE images into the DSP DRAM region below the Linux memory base.
+[wcn_firmware]
+firmware = [
+  { source = "f286-gsm-dsp.bin", destination = "ums9117/f286-gsm-dsp.bin", size = 3145728 },
+  { source = "f286-lte-dsp.bin", destination = "ums9117/f286-lte-dsp.bin", size = 3031040 },
+  { source = "f286-xdspA-boot.bin", destination = "ums9117/f286-xdspA-boot.bin", size = 6744 },
+  { source = "f286-xdspA-main.bin", destination = "ums9117/f286-xdspA-main.bin", size = 39604 },
+  { source = "f286-xdspB-boot.bin", destination = "ums9117/f286-xdspB-boot.bin", size = 5464 },
+  { source = "f286-xdspB-main.bin", destination = "ums9117/f286-xdspB-main.bin", size = 39068 },
+]

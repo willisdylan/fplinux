@@ -66,3 +66,8 @@ def test_board_layout_is_validated_like_the_platform_one() -> None:
         pytest.raises(SystemExit, match="target bootstrap layout"),
     ):
         targets.load_target("nokia-ta1618")
+
+
+def test_ruio_f286_boots_inside_its_48mb() -> None:
+    """The Ruio F286 declares the 48 MB layout its bootstrap needs."""
+    assert targets.load_target("ruio-f286")["bootstrap"]["layout"] == LAYOUT_48MB

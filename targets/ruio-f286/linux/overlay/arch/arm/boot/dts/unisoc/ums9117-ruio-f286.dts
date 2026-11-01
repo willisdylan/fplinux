@@ -1,0 +1,151 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/dts-v1/;
+
+#include <dt-bindings/leds/common.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/input/fplinux-keypad.h>
+#include "ums9117.dtsi"
+#include "ums9117-sc2720.dtsi"
+#include "fplinux-ruio-f286-identity.dtsi"
+#include "ums9117-nand-readonly.dtsi"
+#include "ruio-f286-bluetooth.dtsi"
+
+#include "fplinux-ruio-f286-audio-policy.dtsi"
+
+#include "fplinux-ruio-f286-panel-addresses.h"
+
+/ {
+	/* Linux RAM starts above the whole DSP region: 0x80000000-0x80760000
+	 * (CM4 image + sipc window, GSM DSP image + window, LTE DSP window,
+	 * image, split slots and the LTE UL-data slots) is not RAM to Linux,
+	 * so the f286-radio driver maps those ranges with memremap/ioremap_wc
+	 * like device memory. The UL-data slots reach 0x8075E000; a base of
+	 * 0x80740000 gave Linux the firmware's UL-data area
+	 * [0x80745000,0x8075E000). RAM is 0x80760000-0x82c1ffff (36.75 MB).
+	 * Must match target.toml [linux].memory (the build checks this). */
+	memory@80760000 {
+		device_type = "memory";
+		reg = <0x80760000 0x024c0000>;
+	};
+
+	soc {
+		display@20800000 {
+			compatible = "fplinux,ums9117-gc9307-lcm-fb";
+			reg = <0x20800000 0x00001000>,
+			      <0x20a00000 0x00001000>,
+			      <0x60000000 0x00000002>,
+			      <0x60020000 0x00000002>,
+			      <0x20e01000 0x00000004>,
+			      <0x20e01004 0x00000004>,
+			      <0x20e02004 0x00000004>,
+			      <FPLINUX_PANEL_CONTROL_MUX_PHYS 0x0000001c>,
+			      <FPLINUX_PANEL_CONTROL_CONFIG_PHYS 0x0000001c>,
+			      <FPLINUX_PANEL_DATA_MUX_PHYS 0x0000004c>,
+			      <FPLINUX_PANEL_DATA_CONFIG_PHYS 0x0000004c>;
+			interrupt-names = "lcdc-done";
+			interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
+			memory-region = <&codec_dma>;
+			reg-names = "lcdc", "lcm", "lcm-command", "lcm-data",
+				    "ap-ahb-gate-set", "ap-ahb-reset-set",
+				    "ap-ahb-reset-clear", "pinmux", "pinconf",
+				    "pinmux-data", "pinconf-data";
+			sprd,aon-apb = <&aon_apb>;
+#include "fplinux-ruio-f286-panel.dtsi"
+			sprd,pmic = <&sc2720_pmic>;
+			sprd,wled-current-levels = <31 31 0 31>;
+			sprd,wled-default-level = <22>;
+		};
+	};
+};
+
+&keypad_mux {
+	keypad_mux_pins: keypad-pins {
+		pinctrl-single,pins = <
+			0x00 0 0x04 0 0x08 0 0x0c 0 0x10 0
+			0x14 0 0x18 0 0x1c 0 0x20 0 0x24 0
+		>;
+	};
+};
+
+&keypad_pads {
+	keypad_pad_pins: keypad-pins {
+		pinctrl-single,pins = <
+			0x00 0x1 0x04 0x1 0x08 0x1 0x0c 0x1 0x10 0x1
+			0x14 0x8a 0x18 0x8a 0x1c 0x8a 0x20 0x8a 0x24 0x8a
+		>;
+	};
+};
+
+&keypad {
+	compatible = "sprd,ums9117-keypad";
+	label = "Ruio F286 keypad";
+	pinctrl-0 = <&keypad_mux_pins &keypad_pad_pins>;
+	pinctrl-names = "matrix";
+	keypad,num-columns = <5>;
+	keypad,num-rows = <5>;
+	/* Matrix decoded from the stock keymap (column-major, 8-stride,
+	 * 5 columns) and checked key by key on the phone (two rounds).
+	 * Digit block: 1/4/7/* col2, 2/5/8/0 col3, 3/6/9/# col4.
+	 * Nav: soft-left (0,0) = BootROM key, soft-right (1,0), call (1,1),
+	 * up (2,1), left (3,0), OK (3,1), down (4,0), right (4,1). */
+	linux,keymap = <
+		MATRIX_KEY(0, 0, FPLINUX_KEY_SOFT_LEFT)
+		MATRIX_KEY(0, 2, FPLINUX_KEY_1)
+		MATRIX_KEY(0, 3, FPLINUX_KEY_2)
+		MATRIX_KEY(0, 4, FPLINUX_KEY_3)
+		MATRIX_KEY(1, 0, FPLINUX_KEY_SOFT_RIGHT)
+		MATRIX_KEY(1, 1, FPLINUX_KEY_CALL)
+		MATRIX_KEY(1, 2, FPLINUX_KEY_4)
+		MATRIX_KEY(1, 3, FPLINUX_KEY_5)
+		MATRIX_KEY(1, 4, FPLINUX_KEY_6)
+		MATRIX_KEY(2, 1, FPLINUX_KEY_UP)
+		MATRIX_KEY(2, 2, FPLINUX_KEY_7)
+		MATRIX_KEY(2, 3, FPLINUX_KEY_8)
+		MATRIX_KEY(2, 4, FPLINUX_KEY_9)
+		MATRIX_KEY(3, 0, FPLINUX_KEY_LEFT)
+		MATRIX_KEY(3, 1, FPLINUX_KEY_OK)
+		MATRIX_KEY(3, 2, FPLINUX_KEY_STAR)
+		MATRIX_KEY(3, 3, FPLINUX_KEY_0)
+		MATRIX_KEY(3, 4, FPLINUX_KEY_POUND)
+		MATRIX_KEY(4, 0, FPLINUX_KEY_DOWN)
+		MATRIX_KEY(4, 1, FPLINUX_KEY_RIGHT)
+	>;
+
+	status = "okay";
+};
+
+#include "ums9117-ram-session.dtsi"
+
+&codec_dma {
+	size = <0x00400000>;
+};
+
+/* The fuel gauge and keypad light need board calibration values. */
+&sc2720_fgu {
+	status = "disabled";
+};
+
+&sc2720_kpled {
+	status = "disabled";
+};
+
+&usb {
+	compatible = "fplinux,ums9117-musb-inherited";
+	dr_mode = "peripheral";
+
+	status = "okay";
+};
+
+/ {
+	/*
+	 * Baseband bring-up: whale-die power-on and GSM/LTE DSP load. The
+	 * node has no reg: the driver maps its fixed windows itself, like the
+	 * rest of the F286 support. The DSP firmware files come from the
+	 * device-data group.
+	 */
+	radio {
+		compatible = "fplinux,ums9117-f286-radio";
+		firmware-name = "ums9117/f286-lte-dsp.bin",
+				"ums9117/f286-gsm-dsp.bin";
+	};
+};

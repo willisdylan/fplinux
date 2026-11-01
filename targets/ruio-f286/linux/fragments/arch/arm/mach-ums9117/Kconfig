@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: GPL-2.0-only
+if ARCH_UMS9117
+
+config MACH_RUIO_F286
+	bool "Ruio F286"
+	select GPIOLIB
+	select GPIO_PMIC_EIC_SPRD
+	select MFD_SYSCON
+	help
+	  Board support for the Ruio F286 (UMS9117) feature phone, loaded
+	  into RAM over USB. The board provides the USB session, read-only
+	  internal NAND access, the GC9307 display and the keypad. Audio is
+	  not supported; Bluetooth and the baseband radio are work in
+	  progress.
+
+endif

@@ -26,6 +26,8 @@ SELECTIONS = (
     ("nokia-110-4g", "windows"),
     ("nokia-ta1618", "linux"),
     ("nokia-ta1618", "windows"),
+    ("ruio-f286", "linux"),
+    ("ruio-f286", "windows"),
     ("uniwa-v1000-4g", "linux"),
     ("uniwa-v1000-4g", "windows"),
     ("xiaomi-qin-1s-plus", "linux"),
