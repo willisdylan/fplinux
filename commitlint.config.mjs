@@ -57,6 +57,7 @@ const SCOPES = [
   "release",
   "repo",
   "rootfs",
+  "ruio-f286",
   "runtime",
   "sc9820e",
   "session",
