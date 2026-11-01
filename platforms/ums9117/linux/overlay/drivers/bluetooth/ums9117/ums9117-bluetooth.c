@@ -75,6 +75,19 @@
 #define UMS9117_BT_POWER_TIMEOUT_NS (100ULL * NSEC_PER_MSEC)
 #define UMS9117_CM4_SETUP_TIMEOUT_NS (5ULL * NSEC_PER_SEC)
 
+/* Stock (kernel.bin 0x80c2ee9c) clears BT deep sleep, writes the CM4 vector
+ * and releases the BT and CM4 resets without waiting for the BT domain; no
+ * AP code clears its force shutdown, so the CM4 firmware likely powers the
+ * domain itself. The domain-ON wait below then never succeeds before the
+ * release (it times out with -110 on hardware). stock_release=1 skips
+ * that wait.
+ */
+static bool stock_release;
+module_param(stock_release, bool, 0644);
+MODULE_PARM_DESC(
+	stock_release,
+	"release the CM4 without waiting for the BT power domain (stock order)");
+
 struct ums9117_bluetooth {
 	struct device *dev;
 	struct regmap *pmu;
@@ -296,6 +309,11 @@ static int power_on(struct ums9117_bluetooth *bt)
 	cm4_barrier();
 	if (ret)
 		return ret;
+	if (stock_release) {
+		dev_info(bt->dev, "stock release: BT domain=%d, not waiting\n",
+			 bt_domain_state(bt));
+		goto domain_done;
+	}
 	started = ktime_get_ns();
 	do {
 		ret = bt_domain_state(bt);
@@ -311,6 +329,7 @@ static int power_on(struct ums9117_bluetooth *bt)
 	} while (ktime_get_ns() - started < UMS9117_BT_POWER_TIMEOUT_NS);
 	if (stable != 2)
 		return -ETIMEDOUT;
+domain_done:
 	ret = read_reset(bt, &cp, &cm4);
 	if (ret)
 		return ret;
@@ -458,6 +477,12 @@ static int start_controller(struct ums9117_bluetooth *bt)
 			break;
 		usleep_range(500, 1000);
 	} while (ktime_get_ns() - started < UMS9117_CM4_SETUP_TIMEOUT_NS);
+	if (stock_release)
+		dev_info(
+			bt->dev,
+			"stock release: setup %d after %llu ms, BT domain=%d\n",
+			ret, div_u64(ktime_get_ns() - started, NSEC_PER_MSEC),
+			bt_domain_state(bt));
 	if (ret == -EINPROGRESS)
 		return -ETIMEDOUT;
 	if (ret)
