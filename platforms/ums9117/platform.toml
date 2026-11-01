@@ -253,6 +253,14 @@ source = "platforms/ums9117/linux/fragments/drivers/memory/ums9117/memory-parent
 destination = "drivers/memory/Makefile"
 
 [[linux.appends]]
+source = "platforms/ums9117/linux/fragments/drivers/soc/ums9117/soc-parent.Kconfig"
+destination = "drivers/soc/Kconfig"
+
+[[linux.appends]]
+source = "platforms/ums9117/linux/fragments/drivers/soc/ums9117/soc-parent.Makefile"
+destination = "drivers/soc/Makefile"
+
+[[linux.appends]]
 source = "platforms/ums9117/linux/fragments/drivers/mmc/host/mmc.Kconfig"
 destination = "drivers/mmc/host/Kconfig"
 

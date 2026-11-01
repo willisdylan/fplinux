@@ -49,6 +49,9 @@ anc_toggle_home_icon = "anc_toggle_home_icon"
 anc_vibrate = "anc_vibrate"
 # ARM AND instruction that updates condition flags.
 ands = "ands"
+# Linux VFS helpers the F286 radio driver reads its firmware with.
+filp_close = "filp_close"
+filp_open = "filp_open"
 gl_pathc = "gl_pathc"
 ki_filp = "ki_filp"
 mke2fs = "mke2fs"

@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-2.0-only
+config F286_RADIO_UMS9117
+	bool "Ruio F286 baseband radio and DSP bring-up"
+	depends on ARCH_UMS9117
+	help
+	  Bring-up driver for the Ruio F286 baseband: the stock whale-die
+	  power-on sequence (AON gate sets, keyed 0x40310008 step-0,
+	  analog-die ADI batch, radio-on set) and the GSM/LTE DSP boot
+	  sequences (firmware copies into the DSP DRAM region below the Linux
+	  memory base, boot address, start control, reset release, command
+	  queue poll), driven from sysfs. Exposes radio_power, load_lte,
+	  load_gsm, status and binary attributes for the DSP AP windows.
+	  Touches no hardware until a user writes the attributes.
+
+	  This is a research driver: the LTE DSP does not start yet and the
+	  phone hangs about a second after load_lte. Say N unless you are
+	  working on the F286 radio.
