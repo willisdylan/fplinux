@@ -24,8 +24,8 @@ from fplinux_cli.manifests.values import (
 )
 
 
-def _platform_boot_layout(value: object, name: str) -> dict[str, int]:
-    """Validate the volatile Linux handoff layout shared by one platform."""
+def boot_layout(value: object, name: str) -> dict[str, int]:
+    """Validate the volatile Linux handoff layout of one platform or board."""
     fields = {
         "ram_base",
         "ram_size",
@@ -300,9 +300,7 @@ def _bootstrap(value: object) -> dict[str, Any]:
         bounds=(1, 0x100000000),
         alignment=4,
     )
-    bootstrap["layout"] = _platform_boot_layout(
-        bootstrap.get("layout"), "platform bootstrap layout"
-    )
+    bootstrap["layout"] = boot_layout(bootstrap.get("layout"), "platform bootstrap layout")
     nonempty_string(bootstrap.get("toolchain"), "platform bootstrap toolchain")
     integer_value(bootstrap.get("lto"), "platform bootstrap lto", bounds=(0, 1))
     return bootstrap

@@ -63,12 +63,10 @@ def generated_bootstrap_identity(target_config: dict[str, Any]) -> bytes:
     return b""
 
 
-def effective_boot_layout(
-    target_config: dict[str, Any], platform: dict[str, Any]
-) -> dict[str, int]:
+def effective_boot_layout(target_config: dict[str, Any]) -> dict[str, int]:
     """Return the one layout selected for this bootstrap build."""
     layout = target_config.get("layout")
-    return layout if isinstance(layout, dict) else platform["bootstrap"]["layout"]
+    return layout if isinstance(layout, dict) else target_config["bootstrap"]["layout"]
 
 
 def bootstrap_settings(target_config: dict[str, Any]) -> bytes:
@@ -118,7 +116,7 @@ def generated_bootstrap_files(
     target_config: dict[str, Any], platform: dict[str, Any]
 ) -> dict[str, bytes]:
     """Return every transient input generated for one bootstrap build."""
-    layout = effective_boot_layout(target_config, platform)
+    layout = effective_boot_layout(target_config)
     return {
         BOOTSTRAP_IDENTITY_HEADER: generated_bootstrap_identity(target_config),
         "generated/fplinux-bootstrap-settings.make": bootstrap_settings(target_config),

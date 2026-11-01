@@ -29,7 +29,7 @@ from fplinux_cli.manifests.paths import (
     platform_asset_lock_path,
     target_directory,
 )
-from fplinux_cli.manifests.platforms import load_platform
+from fplinux_cli.manifests.platforms import boot_layout, load_platform
 from fplinux_cli.manifests.profiles import load_profile
 from fplinux_cli.manifests.values import (
     VALUE_NAME,
@@ -85,8 +85,9 @@ def _target_bootstrap(value: object, backend: str, memory: dict[str, Any]) -> di
         fields.add("layout")
     else:
         fields.add("dtb_destination")
-        if isinstance(value, dict) and "lcd_config" in value:
-            fields.add("lcd_config")
+        fields.update(
+            key for key in ("lcd_config", "layout") if isinstance(value, dict) and key in value
+        )
     bootstrap = exact_table(value, fields, "target bootstrap")
     for key in ("image", "map"):
         relative_value(bootstrap[key], f"target bootstrap {key}")
@@ -103,6 +104,9 @@ def _target_bootstrap(value: object, backend: str, memory: dict[str, Any]) -> di
             if "lcd_config" in bootstrap
             else None
         )
+        # A board with less RAM than the platform default replaces the whole handoff layout.
+        if "layout" in bootstrap:
+            bootstrap["layout"] = boot_layout(bootstrap["layout"], "target bootstrap layout")
     return bootstrap
 
 
@@ -402,6 +406,8 @@ def load_target(
     )
 
     bootstrap = _target_bootstrap(config.get("bootstrap"), backend, memory)
+    if backend == "ums9117" and "layout" in bootstrap:
+        platform["bootstrap"]["layout"] = bootstrap.pop("layout")
     adapter = _target_adapter(config.get("adapter"), backend, config["display"])
     if (profile or "default") not in declared_boot_profiles(config):
         fail(f"target {target} does not support profile {profile}")
