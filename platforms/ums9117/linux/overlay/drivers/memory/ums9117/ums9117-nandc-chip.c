@@ -5,6 +5,22 @@
 
 /* Complete physical layouts, including the OOB bytes of each page. */
 static const struct ums9117_nandc_chip ums9117_nandc_chips[] = {
+	/*
+	 * Physical layout of the fitted Ruio F286 chip, READ_ID b0 15. With a
+	 * 2112-byte page stride, page 1 of a raw backup matches the boot0
+	 * partition read through the vendor loader byte for byte.
+	 */
+	{
+		.name = "F286-b015",
+		.manufacturer_id = 0xb0,
+		.device_id = 0x15,
+		.page_main_bytes = 2048,
+		.oob_bytes = 64,
+		.pages_per_block = 64,
+		.block_count = 1024,
+		.plane_count = 1,
+		.feature_b0_defined_mask = 0xff,
+	},
 	{
 		.name = "FM25LG01B",
 		.manufacturer_id = 0xa1,

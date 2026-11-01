@@ -183,6 +183,11 @@ struct ums9117_nandc {
 	u32 last_axim_status;
 	u32 id_raw;
 	u32 declared_id;
+	/* When set, keep the chip's on-die ECC enabled for reads (F286 b015
+	 * marginal raw reads flip bits between reads; ECC-corrected reads are
+	 * stable).  Set via the ecc_read sysfs switch.
+	 */
+	bool ecc_read;
 	/* Identification result, written once under io_mutex by the first open. */
 	const struct ums9117_nandc_chip *chip;
 	u32 identity_id_raw;
@@ -1007,6 +1012,8 @@ static int ums9117_nandc_run_diagnostics(struct ums9117_nandc *nandc)
 	    nandc->feature_raw[2] != 0)
 		return ums9117_nandc_fail(nandc, -EUCLEAN,
 					  "unexpected NAND feature state");
+	if (nandc->ecc_read)
+		return 0;
 	return ums9117_nandc_prepare_raw_mode(nandc);
 }
 
@@ -1278,6 +1285,30 @@ static void ums9117_nandc_release_buffers(struct ums9117_nandc *nandc)
 	nandc->staging_buffer = NULL;
 }
 
+static ssize_t ecc_read_show(struct device *dev, struct device_attribute *attr,
+			     char *buf)
+{
+	struct ums9117_nandc *nandc = dev_get_drvdata(dev);
+
+	return sysfs_emit(buf, "%u\n", nandc->ecc_read ? 1U : 0U);
+}
+
+static ssize_t ecc_read_store(struct device *dev, struct device_attribute *attr,
+			      const char *buf, size_t count)
+{
+	struct ums9117_nandc *nandc = dev_get_drvdata(dev);
+	bool value;
+
+	if (kstrtobool(buf, &value))
+		return -EINVAL;
+	mutex_lock(&nandc->io_mutex);
+	nandc->ecc_read = value;
+	mutex_unlock(&nandc->io_mutex);
+	return count;
+}
+
+static DEVICE_ATTR_RW(ecc_read);
+
 static ssize_t audit_show(struct device *dev, struct device_attribute *attr,
 			  char *buf)
 {
@@ -1285,7 +1316,7 @@ static ssize_t audit_show(struct device *dev, struct device_attribute *attr,
 
 	return sysfs_emit(
 		buf,
-		"state=%s read_only=1\n"
+		"state=%s read_only=1 ecc_read=%u\n"
 		"arm_boot_mode=0x%08x id_raw=0x%08x\n"
 		"last_error=%d total_commands=%u\n"
 		"feature_a0=0x%08x feature_b0=0x%08x feature_c0=0x%08x\n"
@@ -1301,18 +1332,18 @@ static ssize_t audit_show(struct device *dev, struct device_attribute *attr,
 		nandc->failed			  ? "failed" :
 		nandc->runtime_sessions_completed ? "ready" :
 						    "idle",
-		nandc->arm_boot_mode, nandc->id_raw, nandc->last_error,
-		nandc->completed_operations, nandc->feature_raw[0],
-		nandc->feature_raw[1], nandc->feature_raw[2],
-		nandc->last_int_raw, nandc->last_spi_status,
-		nandc->last_axim_status, nandc->page_read_error,
-		nandc->status_poll_count, nandc->page_status, nandc->last_page,
-		nandc->features_valid, nandc->read_ecc_disabled,
-		nandc->raw_feature_b0, nandc->restored_feature_b0,
-		nandc->nand_feature_restored, nandc->feature_restore_error,
-		nandc->physical_page_bytes, nandc->page_count, nandc->raw_bytes,
-		nandc->raw_registered, nandc->io_faulted,
-		nandc->runtime_sessions_completed,
+		nandc->ecc_read ? 1U : 0U, nandc->arm_boot_mode, nandc->id_raw,
+		nandc->last_error, nandc->completed_operations,
+		nandc->feature_raw[0], nandc->feature_raw[1],
+		nandc->feature_raw[2], nandc->last_int_raw,
+		nandc->last_spi_status, nandc->last_axim_status,
+		nandc->page_read_error, nandc->status_poll_count,
+		nandc->page_status, nandc->last_page, nandc->features_valid,
+		nandc->read_ecc_disabled, nandc->raw_feature_b0,
+		nandc->restored_feature_b0, nandc->nand_feature_restored,
+		nandc->feature_restore_error, nandc->physical_page_bytes,
+		nandc->page_count, nandc->raw_bytes, nandc->raw_registered,
+		nandc->io_faulted, nandc->runtime_sessions_completed,
 		nandc->runtime_pages_completed, nandc->lifecycle_restored,
 		nandc->lifecycle_restore_error);
 }
@@ -1375,6 +1406,7 @@ static DEVICE_ATTR_RO(geometry);
 static struct attribute *ums9117_nandc_attrs[] = {
 	&dev_attr_audit.attr,
 	&dev_attr_geometry.attr,
+	&dev_attr_ecc_read.attr,
 	NULL,
 };
 

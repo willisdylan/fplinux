@@ -28,6 +28,7 @@ description: |
     C8 11  F50D1G41LB     64
     C2 90  MX35UF1G14AC   64
     CD 61  F35UQA001G     64
+    B0 15  (Ruio F286)    64
 
   The device still opens for another ID, or for one that differs from
   fplinux,nand-id, but every read is refused before a page-read command. The
@@ -60,6 +61,7 @@ properties:
       - 0x000011c8
       - 0x000090c2
       - 0x000061cd
+      - 0x000015b0
     description:
       Expected READ ID value of the fitted chip, manufacturer in the least
       significant byte. When present, any other identified chip is refused.
