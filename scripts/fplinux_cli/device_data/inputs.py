@@ -211,7 +211,11 @@ def firmware_storage(firmware: FirmwareInput) -> tuple[str, bytes]:
         check=lzma.CHECK_CRC32,
         filters=[{"id": lzma.FILTER_LZMA2, "dict_size": 65536}],
     )
-    if len(compressed) < firmware.size:
+    # Only small records ride the kernel's XZ fallback. Large DSP images
+    # ship RAW: their availability must not depend on the loader's
+    # compressed-firmware path (a missing xz file pends request_firmware
+    # forever from kthread context).
+    if len(compressed) < firmware.size and firmware.size <= 512 * 1024:
         return firmware.destination + ".xz", compressed
     return firmware.destination, firmware.contents
 
